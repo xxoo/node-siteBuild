@@ -1,4 +1,6 @@
-/*	siteBuild.js 0.2
+#!/usr/bin/env node
+
+/*	siteBuild.js 0.2.1
  *	全站构建工具, 使用前请确保已经安装 uglify-js 和 less 编译器
  *	用法: siteBuild [网站目录] [-f]
  *		网站目录需要包含 framework/sea-config.js 或 framework/require-config.js
@@ -39,40 +41,44 @@ if (!dir) {
 run(dir, force);
 
 function run(dir, force) {
-	var cfgName = {
-		'amd': 'framework/require-config.js',
-		'cmd': 'framework/sea-config.js'
-	};
-	var scfg, sscfg, cfgType;
-	var modsdir, upModCount = 0;
-	var jsonfile = 'package.json';
-	var vers = {};
-	for (cfgType in cfgName) {
-		scfg = path.join(dir, cfgName[cfgType]);
-		if (fs.existsSync(scfg)) {
-			sscfg = fs.readFileSync(scfg, {
-				encoding: 'utf8'
-				//读取配置文件中的变量, 支持常规的压缩
-			}).replace(/\r/g, '').match(/^([^=]+=\s*)(\{[^\}]*\})([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[\d\.]*"|'[\d\.]*')([^=]+=\s*)(0|1|!0|!1|true|false)((?:.|\n)+)$/);
-			if (sscfg) {
-				sscfg.shift();
-				delete sscfg.input;
-				delete sscfg.index;
-				modsdir = path.join(dir, eval(sscfg[3]));
-				if (fs.existsSync(modsdir)) {
-					var fms = fs.readdirSync(modsdir);
-					var i = 0,
-						j = 0;
-					var tfms, mods, tmod, fnn, files, jsonpath, json, hash, ln, tmpdist, distfile, orgfile;
-					loop1();
+	if (!fs.existsSync(path.join(dir, 'do_not_build'))) {
+		var cfgName = {
+			'amd': 'framework/require-config.js',
+			'cmd': 'framework/sea-config.js'
+		};
+		var scfg, sscfg, cfgType;
+		var modsdir, upModCount = 0;
+		var jsonfile = 'package.json';
+		var vers = {};
+		for (cfgType in cfgName) {
+			scfg = path.join(dir, cfgName[cfgType]);
+			if (fs.existsSync(scfg)) {
+				sscfg = fs.readFileSync(scfg, {
+					encoding: 'utf8'
+					//读取配置文件中的变量, 支持常规的压缩
+				}).replace(/\r/g, '').match(/^([^=]+=\s*)(\{[^\}]*\})([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[\d\.]*"|'[\d\.]*')([^=]+=\s*)(0|1|!0|!1|true|false)((?:.|\n)+)$/);
+				if (sscfg) {
+					sscfg.shift();
+					delete sscfg.input;
+					delete sscfg.index;
+					modsdir = path.join(dir, eval(sscfg[3]));
+					if (fs.existsSync(modsdir)) {
+						var fms = fs.readdirSync(modsdir);
+						var i = 0,
+							j = 0;
+						var tfms, mods, tmod, fnn, files, jsonpath, json, hash, ln, tmpdist, distfile, orgfile;
+						loop1();
+					} else {
+						console.log('srcRoot not found');
+					}
 				} else {
-					console.log('srcRoot not found');
+					console.log('bad config format');
 				}
-			} else {
-				console.log('bad config format');
+				break;
 			}
-			break;
 		}
+	} else {
+		console.log('do_not_build file exists.');
 	}
 
 	function loop1() {

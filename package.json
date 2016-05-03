@@ -1,0 +1,25 @@
+{
+	"name": "siteBuild",
+	"version": "0.2.2",
+	"description": "build entire modular driven frontend by a single command",
+	"bin": "siteBuild.js",
+	"engines": {
+		"node": ">= 0.6"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/xxoo/node-siteBuild.git"
+	},
+	"keywords": [
+		"build",
+		"modular",
+		"frontend"
+	],
+	"author": "Xiao Shen",
+	"license": "BSD",
+	"readmeFilename": "readme.md",
+	"dependencies":{
+		"uglify-js": "latest",
+		"less": "latest"
+	}
+}

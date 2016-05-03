@@ -1,12 +1,11 @@
 # node-siteBuild
     build entire modular driven frontend by a single command
-    please make sure that you have installed uglify-js and less
 
-    currently there are 2 sites that are using this tool:
-    m.yiqihao.com and www.yiqihao.com
+# install
+    `npm -g install siteBuild`
 
-    全站构建工具, 使用前请确保已经安装 uglify-js 和 less 编译器
-    当前使用siteBuild的站点有m.yiqihao.com和www.yiqihao.com
+# 全站构建工具
+
     用法: siteBuild [网站目录] [-f]
     网站目录需要包含 framework/sea-config.js 或 framework/require-config.js
     siteBuild 会自动从中读取 srcRoot, productRoot, siteVersion 等配置
