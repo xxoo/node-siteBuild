@@ -1,8 +1,7 @@
 # Install
-    `npm -g install siteBuild`
+`npm -g install siteBuild`
 
 # 全站构建工具
-
     用法: siteBuild [网站目录] [-f]
     网站目录需要包含 framework/sea-config.js 或 framework/require-config.js
     siteBuild 会自动从中读取 srcRoot, productRoot, siteVersion 等配置
