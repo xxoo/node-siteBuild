@@ -1,7 +1,4 @@
-# node-siteBuild
-    build entire modular driven frontend by a single command
-
-# install
+# Install
     `npm -g install siteBuild`
 
 # 全站构建工具
