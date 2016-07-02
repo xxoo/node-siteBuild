@@ -63,7 +63,7 @@ function run(dir, force) {
 					delete sscfg.index;
 					modsdir = path.join(dir, eval(sscfg[3]));
 					if (fs.existsSync(modsdir)) {
-						var fms = fs.readdirSync(modsdir);
+						var fms = fs.readdirSync(modsdir).sort();
 						var i = 0,
 							j = 0;
 						var tfms, mods, tmod, fnn, files, jsonpath, json, hash, ln, tmpdist, distfile, orgfile;
@@ -85,7 +85,7 @@ function run(dir, force) {
 		if (j === 0) {
 			tfms = path.join(modsdir, fms[i]);
 			if (fs.statSync(tfms).isDirectory()) {
-				mods = fs.readdirSync(tfms);
+				mods = fs.readdirSync(tfms).sort();
 				loop2();
 			} else {
 				p2();
@@ -240,7 +240,7 @@ function run(dir, force) {
 		var pth = path.join(dir, eval(sscfg[5]), fnn);
 		var pth1, pth2;
 		if (fs.existsSync(pth)) {
-			pth1 = fs.readdirSync(pth);
+			pth1 = fs.readdirSync(pth).sort();
 			for (var k = 0; k < pth1.length; k++) {
 				pth2 = path.join(pth, pth1[k]);
 				if (fs.lstatSync(pth2).isDirectory()) {
@@ -300,7 +300,7 @@ function run(dir, force) {
 
 function getfiles(dir) {
 	var f = [];
-	var fd = fs.readdirSync(dir);
+	var fd = fs.readdirSync(dir).sort();
 	for (var i = 0; i < fd.length; i++) {
 		var nfd = path.join(dir, fd[i]);
 		if (fs.statSync(nfd).isDirectory()) {
@@ -327,11 +327,10 @@ function updatever(ver) {
 }
 
 function dirhash(dir, files) {
-	var data;
 	var hash = crypto.createHash('sha1');
 	for (var i = 0; i < files.length; i++) {
-		data = fs.readFileSync(path.join(dir, files[i]));
-		hash.update(data);
+		hash.update(files[i] + '\n');
+		hash.update(fs.readFileSync(path.join(dir, files[i])));
 	}
 	return hash.digest('base64');
 }
@@ -345,7 +344,7 @@ function mdsync(p, mode) {
 }
 
 function rdsync(p) {
-	var f = fs.readdirSync(p);
+	var f = fs.readdirSync(p).sort();
 	for (var i = 0; i < f.length; i++) {
 		var pth = path.join(p, f[i]);
 		if (fs.lstatSync(pth).isDirectory()) {
