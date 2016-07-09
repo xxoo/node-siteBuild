@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-/*	siteBuild.js 0.2.1
+/*	siteBuild.js 0.2.6
  *	全站构建工具, 使用前请确保已经安装 uglify-js 和 less 编译器
  *	用法: siteBuild [网站目录] [-f]
  *		网站目录需要包含 framework/sea-config.js 或 framework/require-config.js
@@ -329,7 +329,7 @@ function updatever(ver) {
 function dirhash(dir, files) {
 	var hash = crypto.createHash('sha1');
 	for (var i = 0; i < files.length; i++) {
-		hash.update(files[i] + '\n');
+		hash.update(files[i].replace(/\\/g, '/') + '\n');
 		hash.update(fs.readFileSync(path.join(dir, files[i])));
 	}
 	return hash.digest('base64');
