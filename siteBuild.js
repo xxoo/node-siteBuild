@@ -189,36 +189,57 @@ function run(dir, force) {
 					}));
 				}
 				node.args.unshift(new UglifyJS.AST_String({
-					value: fnn + '/' + files[ln].replace(/\.js$/, '')
+					value: fnn + '/' + files[ln].replace(/\.js$/, '').replace(/\\/g, '/');
 				}));
 				return node;
 			}
 		}));
 		ast.figure_out_scope();
 		ast = ast.transform(UglifyJS.Compressor({
-			sequences: true, // join consecutive statemets with the “comma operator”
-			properties: true, // optimize property access: a["foo"] → a.foo
-			dead_code: true, // discard unreachable code
-			drop_debugger: true, // discard “debugger” statements
-			unsafe: true, // some unsafe optimizations (see below)
-			conditionals: true, // optimize if-s and conditional expressions
-			comparisons: true, // optimize comparisons
-			evaluate: true, // evaluate constant expressions
-			booleans: true, // optimize boolean expressions
-			loops: true, // optimize loops
-			unused: true, // drop unused variables/functions
-			hoist_funs: true, // hoist function declarations
-			hoist_vars: true, // hoist variable declarations
-			if_return: true, // optimize if-s followed by return/continue
-			join_vars: true, // join var declarations
-			cascade: true, // try to cascade `right` into `left` in sequences
-			side_effects: true, // drop side-effect-free statements
-			warnings: false, // warn about potentially dangerous optimizations/code
+			sequences: true,
+			properties: true,
+			dead_code: true,
+			drop_debugger: true,
+			unsafe: true,
+			unsafe_comps: true,
+			conditionals: true,
+			comparisons: true,
+			evaluate: true,
+			booleans: true,
+			loops: true,
+			unused: true,
+			hoist_funs: true,
+			keep_fargs: false,
+			keep_fnames: false,
+			hoist_vars: true,
+			if_return: true,
+			join_vars: true,
+			collapse_vars: true,
+			reduce_vars: true,
+			cascade: true,
+			side_effects: true,
+			pure_getters: true,
+			pure_funcs: null,
+			negate_iife: true,
+			screw_ie8: false,
+			drop_console: true,
+			angular: false,
+			warnings: false,
+			global_defs: {},
+			passes: 1,
 		}));
-		ast.figure_out_scope();
-		ast.compute_char_frequency();
-		ast.mangle_names();
-		fs.writeFileSync(distfile, ast.print_to_string().replace(rplReg, evalReplace));
+		ast.figure_out_scope({
+			screw_ie8: false
+		});
+		ast.compute_char_frequency({
+			screw_ie8: false
+		});
+		ast.mangle_names({
+			screw_ie8: false
+		});
+		fs.writeFileSync(distfile, ast.print_to_string({
+			screw_ie8: false
+		}).replace(rplReg, evalReplace));
 	}
 
 	function buildLess() {
