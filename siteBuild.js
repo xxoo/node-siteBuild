@@ -189,7 +189,7 @@ function run(dir, force) {
 					}));
 				}
 				node.args.unshift(new UglifyJS.AST_String({
-					value: fnn + '/' + files[ln].replace(/\.js$/, '').replace(/\\/g, '/');
+					value: fnn + '/' + files[ln].replace(/\.js$/, '').replace(/\\/g, '/')
 				}));
 				return node;
 			}
