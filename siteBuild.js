@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
-/*	siteBuild.js 0.2.6
- *	全站构建工具, 使用前请确保已经安装 uglify-js 和 less 编译器
+/*	siteBuild.js
+ *	全站构建工具, 依赖 uglify-js 和 less 编译器
  *	用法: siteBuild [网站目录] [-f]
- *		网站目录需要包含 framework/sea-config.js 或 framework/require-config.js
+ *		使用前请确保网站目录包含 framework/require-config.js, 且其中的 debug 标记为 false
  *		siteBuild 会自动从中读取 srcRoot, productRoot, siteVersion 等配置
- *		每次构建成功后(即使没有更新任何模块), 都会自动将配置文件中的 debug 标记设置为 false
- *		siteVersion 中的 release number 会在有模块更新, 并且构建成功后自动 +1
+ *		每次构建成功后 siteVersion 中的 release number 会在有模块更新时自动 +1
  *
  *		如果当前目录即为网站目录, 则可以忽略网站目录参数
  *
@@ -14,6 +13,7 @@
  */
 
 'use strict';
+var version = '0.3.0';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -41,44 +41,58 @@ if (!dir) {
 run(dir, force);
 
 function run(dir, force) {
-	if (!fs.existsSync(path.join(dir, 'do_not_build'))) {
-		var cfgName = {
-			'amd': 'framework/require-config.js',
-			'cmd': 'framework/sea-config.js'
-		};
-		var scfg, sscfg, cfgType;
-		var modsdir, upModCount = 0;
-		var jsonfile = 'package.json';
-		var vers = {};
-		for (cfgType in cfgName) {
-			scfg = path.join(dir, cfgName[cfgType]);
-			if (fs.existsSync(scfg)) {
-				sscfg = fs.readFileSync(scfg, {
-					encoding: 'utf8'
-					//读取配置文件中的变量, 支持常规的压缩
-				}).replace(/\r/g, '').match(/^([^=]+=\s*)(\{[^\}]*\})([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[\d\.]*"|'[\d\.]*')([^=]+=\s*)(0|1|!0|!1|true|false)((?:.|\n)+)$/);
-				if (sscfg) {
-					sscfg.shift();
-					delete sscfg.input;
-					delete sscfg.index;
-					modsdir = path.join(dir, eval(sscfg[3]));
+	var sscfg, tfms, mods, tmod, fnn, files, jsonpath, sign, json, hash, ln, tmpdist, distfile, orgfile;
+	var scfg = path.join(dir, 'framework/require-config.js');
+	var modsdir, distdir, upModCount = 0;
+	var signfile = 'siteBuild.json';
+	var jsonfile = 'package.json';
+	var vers = {};
+	if (fs.existsSync(scfg)) {
+		sscfg = fs.readFileSync(scfg, {
+			encoding: 'utf8'
+			//读取配置文件中的变量, 支持常规的压缩
+		}).replace(/\r/g, '').match(/^([^=]+=\s*)(\{[^\}]*\})([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[\d\.]*"|'[\d\.]*')([^=]+=\s*)(0|1|!0|!1|true|false)((?:.|\n)+)$/);
+		if (sscfg) {
+			sscfg.shift();
+			delete sscfg.input;
+			delete sscfg.index;
+			if (eval(sscfg[9])) {
+				console.log('please set debug value to false in require-config.js');
+			} else {
+				modsdir = path.join(dir, eval(sscfg[3]));
+				distdir = path.join(dir, eval(sscfg[5]));
+				signfile = path.join(distdir, signfile);
+				if (fs.existsSync(signfile)) {
+					sign = JSON.parse(fs.readFileSync(signfile, {
+						encoding: 'utf8'
+					}));
+				} else {
+					sign = {};
+				}
+				if (!('hashMethod' in sign)) {
+					sign.hashMethod = 'sha256';
+				}
+				if (!('ie8' in sign)) {
+					sign.ie8 = true;
+				}
+				if (sign.version && compareVersion(sign.version, version) > 0) {
+					console.log('please update siteBuild first');
+				} else {
 					if (fs.existsSync(modsdir)) {
 						var fms = fs.readdirSync(modsdir).sort();
 						var i = 0,
 							j = 0;
-						var tfms, mods, tmod, fnn, files, jsonpath, json, hash, ln, tmpdist, distfile, orgfile;
 						loop1();
 					} else {
 						console.log('srcRoot not found');
 					}
-				} else {
-					console.log('bad config format');
 				}
-				break;
 			}
+		} else {
+			console.log('bad config format');
 		}
 	} else {
-		console.log('do_not_build file exists.');
+		console.log('require-config.js not found');
 	}
 
 	function loop1() {
@@ -96,7 +110,9 @@ function run(dir, force) {
 	}
 
 	function loop2() {
+		var oldjsonpath;
 		tmod = path.join(tfms, mods[j]);
+		oldjsonpath = path.join(tmod, jsonfile);
 		if (fs.statSync(tmod).isDirectory()) {
 			tmpdist = path.join(tmod, 'dist');
 			if (fs.existsSync(tmpdist)) {
@@ -105,14 +121,21 @@ function run(dir, force) {
 			files = getfiles(tmod);
 			if (files.length > 0) {
 				fnn = fms[i] + '/' + mods[j];
-				jsonpath = path.join(tmod, jsonfile);
+				jsonpath = path.join(distdir, fms[i], mods[j], jsonfile);
+				if (fs.existsSync(oldjsonpath) && !fs.statSync(oldjsonpath).isDirectory()) {
+					try {
+						fs.renameSync(oldjsonpath, jsonpath);
+					} catch (e) {
+						fs.unlinkSync(oldjsonpath);
+					}
+				}
 				if (fs.existsSync(jsonpath) && !fs.statSync(jsonpath).isDirectory()) {
 					json = JSON.parse(fs.readFileSync(jsonpath, {
 						encoding: 'utf8'
 					}));
 				} else {
 					json = {
-						version: '0.0.1'
+						version: 1
 					};
 				}
 				hash = dirhash(tmod, files);
@@ -121,7 +144,11 @@ function run(dir, force) {
 						upModCount += 1;
 						//do not update the version number for the first time build
 						if ('hash' in json) {
-							json.version = updatever(json.version);
+							if (typeof json.version === 'number') {
+								json.version++;
+							} else {
+								json.version = updatever(json.version);
+							}
 						}
 					}
 					ln = 0;
@@ -172,28 +199,6 @@ function run(dir, force) {
 		ast = UglifyJS.parse(fs.readFileSync(orgfile, {
 			encoding: 'utf8'
 		}));
-		if (cfgType === 'cmd') {
-			deps = [];
-			ast.walk(new UglifyJS.TreeWalker(function(node, descend) {
-				if (node instanceof UglifyJS.AST_Call && node.expression.name === 'require' && node.args.length) {
-					deps.push(node.args[0].clone());
-				}
-			}));
-		}
-		ast.figure_out_scope();
-		ast = ast.transform(new UglifyJS.TreeTransformer(function(node, descend) {
-			if (node instanceof UglifyJS.AST_Call && node.expression.name === 'define') {
-				if (deps) {
-					node.args.unshift(new UglifyJS.AST_Array({
-						elements: deps
-					}));
-				}
-				node.args.unshift(new UglifyJS.AST_String({
-					value: fnn + '/' + files[ln].replace(/\.js$/, '').replace(/\\/g, '/')
-				}));
-				return node;
-			}
-		}));
 		ast.figure_out_scope();
 		ast = ast.transform(UglifyJS.Compressor({
 			sequences: true,
@@ -221,7 +226,7 @@ function run(dir, force) {
 			pure_getters: true,
 			pure_funcs: null,
 			negate_iife: true,
-			screw_ie8: false,
+			screw_ie8: !sign.ie8,
 			drop_console: true,
 			angular: false,
 			warnings: false,
@@ -229,16 +234,16 @@ function run(dir, force) {
 			passes: 1,
 		}));
 		ast.figure_out_scope({
-			screw_ie8: false
+			screw_ie8: !sign.ie8
 		});
 		ast.compute_char_frequency({
-			screw_ie8: false
+			screw_ie8: !sign.ie8
 		});
 		ast.mangle_names({
-			screw_ie8: false
+			screw_ie8: !sign.ie8
 		});
 		fs.writeFileSync(distfile, ast.print_to_string({
-			screw_ie8: false
+			screw_ie8: !sign.ie8
 		}).replace(rplReg, evalReplace));
 	}
 
@@ -258,7 +263,7 @@ function run(dir, force) {
 	}
 
 	function deploy() {
-		var pth = path.join(dir, eval(sscfg[5]), fnn);
+		var pth = path.join(distdir, fnn);
 		var pth1, pth2;
 		if (fs.existsSync(pth)) {
 			pth1 = fs.readdirSync(pth).sort();
@@ -266,14 +271,12 @@ function run(dir, force) {
 				pth2 = path.join(pth, pth1[k]);
 				if (fs.lstatSync(pth2).isDirectory()) {
 					rdsync(pth2);
-				} else {
-					fs.unlinkSync(pth2);
 				}
 			}
 		} else {
 			mdsync(pth);
 		}
-		pth = path.join(pth, json.version);
+		pth = path.join(pth, '' + json.version);
 		if (fs.existsSync(tmpdist)) {
 			fs.renameSync(tmpdist, pth);
 		}
@@ -313,9 +316,19 @@ function run(dir, force) {
 		if (upModCount > 0) {
 			sscfg[7] = JSON.stringify(updatever(eval(sscfg[7])));
 		}
-		sscfg[9] = 'false';
 		fs.writeFileSync(scfg, sscfg.join(''));
+		sign.version = version;
+		fs.writeFileSync(signfile, JSON.stringify(sign));
 		console.log('updated ' + upModCount + ' modules');
+	}
+
+	function dirhash(dir, files) {
+		var hash = crypto.createHash(sign.hashMethod);
+		for (var i = 0; i < files.length; i++) {
+			hash.update(files[i].replace(/\\/g, '/') + '\n');
+			hash.update(fs.readFileSync(path.join(dir, files[i])));
+		}
+		return hash.digest('base64');
 	}
 }
 
@@ -347,13 +360,28 @@ function updatever(ver) {
 	}
 }
 
-function dirhash(dir, files) {
-	var hash = crypto.createHash('sha1');
-	for (var i = 0; i < files.length; i++) {
-		hash.update(files[i].replace(/\\/g, '/') + '\n');
-		hash.update(fs.readFileSync(path.join(dir, files[i])));
+function compareVersion(v1, v2) {
+	v1 = v1.split('.');
+	v2 = v2.split('.');
+	if (v1[0] > v2[0]) {
+		return 1;
+	} else if (v1[0] < v2[0]) {
+		return -1;
+	} else {
+		if (v1[1] > v2[1]) {
+			return 1;
+		} else if (v1[1] < v2[1]) {
+			return -1;
+		} else {
+			if (v1[2] > v2[2]) {
+				return 1;
+			} else if (v1[2] < v2[2]) {
+				return -1;
+			} else {
+				return 0;
+			}
+		}
 	}
-	return hash.digest('base64');
 }
 
 function mdsync(p, mode) {
