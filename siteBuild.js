@@ -13,7 +13,7 @@
  */
 
 'use strict';
-var version = '0.3.0';
+var version = '0.3.1';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -195,56 +195,9 @@ function run(dir, force) {
 	}
 
 	function buildJs() {
-		var ast, deps;
-		ast = UglifyJS.parse(fs.readFileSync(orgfile, {
-			encoding: 'utf8'
-		}));
-		ast.figure_out_scope();
-		ast = ast.transform(UglifyJS.Compressor({
-			sequences: true,
-			properties: true,
-			dead_code: true,
-			drop_debugger: true,
-			unsafe: true,
-			unsafe_comps: true,
-			conditionals: true,
-			comparisons: true,
-			evaluate: true,
-			booleans: true,
-			loops: true,
-			unused: true,
-			hoist_funs: true,
-			keep_fargs: false,
-			keep_fnames: false,
-			hoist_vars: true,
-			if_return: true,
-			join_vars: true,
-			collapse_vars: true,
-			reduce_vars: true,
-			cascade: true,
-			side_effects: true,
-			pure_getters: true,
-			pure_funcs: null,
-			negate_iife: true,
-			screw_ie8: !sign.ie8,
-			drop_console: true,
-			angular: false,
-			warnings: false,
-			global_defs: {},
-			passes: 1,
-		}));
-		ast.figure_out_scope({
-			screw_ie8: !sign.ie8
-		});
-		ast.compute_char_frequency({
-			screw_ie8: !sign.ie8
-		});
-		ast.mangle_names({
-			screw_ie8: !sign.ie8
-		});
-		fs.writeFileSync(distfile, ast.print_to_string({
-			screw_ie8: !sign.ie8
-		}).replace(rplReg, evalReplace));
+		fs.writeFileSync(distfile, UglifyJS.minify(orgfile, {
+			ie8: sign.ie8
+		}).code.replace(rplReg, evalReplace));
 	}
 
 	function buildLess() {
