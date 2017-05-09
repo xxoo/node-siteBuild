@@ -13,7 +13,7 @@
  */
 
 'use strict';
-var version = '0.3.1';
+var version = '0.3.2';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -195,7 +195,9 @@ function run(dir, force) {
 	}
 
 	function buildJs() {
-		fs.writeFileSync(distfile, UglifyJS.minify(orgfile, {
+		fs.writeFileSync(distfile, UglifyJS.minify(fs.readFileSync(orgfile, {
+			encoding: 'utf8'
+		}), {
 			ie8: sign.ie8
 		}).code.replace(rplReg, evalReplace));
 	}
