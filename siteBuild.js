@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*	siteBuild.js
- *	全站构建工具, 依赖 uglify-js 和 less 编译器
+ *	全站构建工具
  *	用法: siteBuild [网站目录] [-f]
  *		使用前请确保网站目录包含 framework/require-config.js, 且其中的 debug 标记为 false
  *		siteBuild 会自动从中读取 srcRoot, productRoot, siteVersion 等配置
@@ -13,11 +13,13 @@
  */
 
 'use strict';
-var version = '0.3.7';
+var version = '0.3.8';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
 var babel = require('babel-core');
+var env = require('babel-preset-env');
+var babili = require('babel-preset-babili');
 var less = require('less');
 
 var dir, force, n = 2;
@@ -192,7 +194,7 @@ function run(dir, force) {
 
 	function buildJs() {
 		fs.writeFileSync(distfile, babel.transformFileSync(orgfile, {
-			presets: [["env",{"useBuiltIns":false,"targets":{"browsers":sign.browser}}],"babili"],
+			presets: [[env,{useBuiltIns:false,targets:{browsers:sign.browser}}],babili],
       babelrc: false
 		}).code);
 	}
