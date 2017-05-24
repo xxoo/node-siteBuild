@@ -1,6 +1,6 @@
 {
 	"name": "siteBuild",
-	"version": "0.3.2",
+	"version": "0.3.7",
 	"description": "build entire modular driven frontend by a single command",
 	"bin": "siteBuild.js",
 	"engines": {
@@ -19,7 +19,9 @@
 	"license": "BSD",
 	"readmeFilename": "readme.md",
 	"dependencies":{
-		"uglify-js": "latest",
+		"babel-core": "latest",
+		"babel-preset-env": "latest",
+		"babel-preset-babili": "latest",
 		"less": "latest"
 	}
 }

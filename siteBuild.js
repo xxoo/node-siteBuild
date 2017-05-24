@@ -13,17 +13,13 @@
  */
 
 'use strict';
-var version = '0.3.2';
+var version = '0.3.7';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
-var UglifyJS = require('uglify-js');
+var babel = require('babel-core');
 var less = require('less');
 
-//匹配字符串替换的正则表达式，寻找js中的这种代码 'some string'.replace(/some regex/,'with some text')
-//并直接将结果替换掉原来的代码, 以提高发布后的代码执行效率.
-//TODO: 正则的实现并不安全，需改用AST
-var rplReg = /(?:'(?:(?:[^\n\r']|\\')*?[^\\])??(?:\\\\)*'|"(?:(?:[^\n\r"]|\\")*?[^\\])??(?:\\\\)*")\.replace\(\/((?:\\\\)+|(?:[^\\\/]|[^\/][^\n\r]*?[^\\])(?:\\\\)*)\/(img|igm|mgi|mig|gmi|gim|im|ig|mg|mi|gm|gi|i|m|g),(?:'(?:(?:[^\n\r']|\\')*?[^\\])??(?:\\\\)*'|"(?:(?:[^\n\r"]|\\")*?[^\\])??(?:\\\\)*")\)/g;
 var dir, force, n = 2;
 if (process.argv.length > 2) {
 	while ((!dir || !force) && n < process.argv.length) {
@@ -69,11 +65,11 @@ function run(dir, force) {
 				} else {
 					sign = {};
 				}
-				if (!('hashMethod' in sign)) {
+				if (!sign.hashMethod) {
 					sign.hashMethod = 'sha256';
 				}
-				if (!('ie8' in sign)) {
-					sign.ie8 = true;
+				if (!sign.browser) {
+					sign.browser = 'ie >= 7';
 				}
 				if (sign.version && compareVersion(sign.version, version) > 0) {
 					console.log('please update siteBuild first');
@@ -195,11 +191,10 @@ function run(dir, force) {
 	}
 
 	function buildJs() {
-		fs.writeFileSync(distfile, UglifyJS.minify(fs.readFileSync(orgfile, {
-			encoding: 'utf8'
-		}), {
-			ie8: sign.ie8
-		}).code.replace(rplReg, evalReplace));
+		fs.writeFileSync(distfile, babel.transformFileSync(orgfile, {
+			presets: [["env",{"useBuiltIns":false,"targets":{"browsers":sign.browser}}],"babili"],
+      babelrc: false
+		}).code);
 	}
 
 	function buildLess() {
