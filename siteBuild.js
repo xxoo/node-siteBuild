@@ -2,7 +2,7 @@
 
 /*	siteBuild.js
  *	全站构建工具
- *	用法: siteBuild [网站目录] [-f]
+ *	用法: siteBuild [网站目录] [-f] [-b browser] [-h hashMethod]
  *		使用前请确保网站目录包含 framework/require-config.js, 且其中的 debug 标记为 false
  *		siteBuild 会自动从中读取 srcRoot, productRoot, siteVersion 等配置
  *		每次构建成功后 siteVersion 中的 release number 会在有模块更新时自动 +1
@@ -10,10 +10,12 @@
  *		如果当前目录即为网站目录, 则可以忽略网站目录参数
  *
  *		如果带有 -f 参数, 则会强制重新构建所有模块, 但仍会根据 hash 值是否发生变化来决定是否更新版本号
+ *		如果带有 -b 参数, 则会用 browser 指定的浏览器作为要支持的浏览器来编译。
+ *		如果带有 -h 参数, 则会用 hashMethod 指定的算法来计算 hash 值
  */
 
 'use strict';
-var version = '0.3.8';
+var version = '0.3.9';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -22,23 +24,31 @@ var env = require('babel-preset-env');
 var babili = require('babel-preset-babili');
 var less = require('less');
 
-var dir, force, n = 2;
+var dir, force, browser, hashMethod, n = 2;
 if (process.argv.length > 2) {
-	while ((!dir || !force) && n < process.argv.length) {
+	while (n < process.argv.length) {
 		if (process.argv[n].toLowerCase() === '-f') {
 			force = true;
+			n++;
+		} else if (process.argv[n].toLowerCase() === '-b') {
+			browser = process.argv[n + 1];
+			force = true;
+			n += 2;
+		} else if (process.argv[n].toLowerCase() === '-h') {
+			hashMethod = process.argv[n + 1];
+			n += 2;
 		} else {
 			dir = process.argv[n];
+			n++;
 		}
-		n++;
 	}
 }
 if (!dir) {
 	dir = process.cwd();
 }
-run(dir, force);
+run();
 
-function run(dir, force) {
+function run() {
 	var sscfg, tfms, mods, tmod, fnn, files, jsonpath, sign, json, hash, ln, tmpdist, distfile, orgfile;
 	var scfg = path.join(dir, 'framework/require-config.js');
 	var modsdir, distdir, upModCount = 0;
@@ -67,10 +77,14 @@ function run(dir, force) {
 				} else {
 					sign = {};
 				}
-				if (!sign.hashMethod) {
+				if (hashMethod) {
+					sign.hashMethod = hashMethod;
+				} else if (!sign.hashMethod) {
 					sign.hashMethod = 'sha256';
 				}
-				if (!sign.browser) {
+				if (browser) {
+					sign.browser = browser;
+				} else if (!sign.browser) {
 					sign.browser = 'ie >= 7';
 				}
 				if (sign.version && compareVersion(sign.version, version) > 0) {
