@@ -1,6 +1,6 @@
 {
 	"name": "siteBuild",
-	"version": "0.3.9",
+	"version": "0.3.10",
 	"description": "build entire modular driven frontend by a single command",
 	"bin": "siteBuild.js",
 	"engines": {
@@ -21,7 +21,7 @@
 	"dependencies":{
 		"babel-core": "latest",
 		"babel-preset-env": "latest",
-		"babel-preset-babili": "latest",
+		"babel-preset-minify": "latest",
 		"less": "latest"
 	}
 }

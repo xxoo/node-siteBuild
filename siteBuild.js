@@ -21,7 +21,7 @@ var path = require('path');
 var crypto = require('crypto');
 var babel = require('babel-core');
 var env = require('babel-preset-env');
-var babili = require('babel-preset-babili');
+var minify = require('babel-preset-minify');
 var less = require('less');
 
 var dir, force, browser, hashMethod, n = 2;
@@ -208,7 +208,7 @@ function run() {
 
 	function buildJs() {
 		fs.writeFileSync(distfile, babel.transformFileSync(orgfile, {
-			presets: [[env,{useBuiltIns:false,targets:{browsers:sign.browser}}],babili],
+			presets: [[env,{useBuiltIns:false,targets:{browsers:sign.browser}}],minify],
       babelrc: false
 		}).code);
 	}
