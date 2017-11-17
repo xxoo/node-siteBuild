@@ -1,6 +1,6 @@
 {
 	"name": "siteBuild",
-	"version": "0.3.11",
+	"version": "0.3.12",
 	"description": "build entire modular driven frontend by a single command",
 	"bin": "siteBuild.js",
 	"engines": {

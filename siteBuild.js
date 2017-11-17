@@ -15,7 +15,7 @@
  */
 
 'use strict';
-var version = '0.3.11';
+var version = '0.3.12';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -349,7 +349,6 @@ function compareVersion(v1, v2) {
 			return -1;
 		} else {
 			if (v1[2] > v2[2]) {
-				console.log(v1[2] > v2[2]);
 				return 1;
 			} else if (v1[2] < v2[2]) {
 				return -1;
