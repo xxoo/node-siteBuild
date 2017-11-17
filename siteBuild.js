@@ -15,13 +15,14 @@
  */
 
 'use strict';
-var version = '0.3.9';
+var version = '0.3.11';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
 var babel = require('babel-core');
 var env = require('babel-preset-env');
 var minify = require('babel-preset-minify');
+var textextensions = require('textextensions');
 var less = require('less');
 
 var dir, force, browser, hashMethod, n = 2;
@@ -289,10 +290,11 @@ function run() {
 	}
 
 	function dirhash(dir, files) {
-		var hash = crypto.createHash(sign.hashMethod);
+		var bf, hash = crypto.createHash(sign.hashMethod);
 		for (var i = 0; i < files.length; i++) {
-			hash.update(files[i].replace(/\\/g, '/') + '\n');
-			hash.update(fs.readFileSync(path.join(dir, files[i])));
+			hash.update(files[i].replace(/\\/g, '/') + '\r');
+			bf = fs.readFileSync(path.join(dir, files[i]));
+			hash.update(textextensions.hasOwnProperty(path.extname(files[i]).substr(1)) ? bf.toString().replace(/\r/g, '') : bf);
 		}
 		return hash.digest('base64');
 	}
@@ -309,7 +311,7 @@ function getfiles(dir) {
 				f.push(path.join(fd[i], nfda[j]));
 			}
 		} else {
-			if (!fd[i].match(/^\.|\.tpl$|^package\.json$/)) {
+			if (!fd[i].match(/^\.|^package\.json$/)) {
 				f.push(fd[i]);
 			}
 		}
@@ -329,6 +331,13 @@ function updatever(ver) {
 function compareVersion(v1, v2) {
 	v1 = v1.split('.');
 	v2 = v2.split('.');
+	v1.forEach(function(v,i){
+		v1[i] = +v;
+	});
+	v2.forEach(function(v,i){
+		v2[i] = +v;
+	});
+	
 	if (v1[0] > v2[0]) {
 		return 1;
 	} else if (v1[0] < v2[0]) {
@@ -340,6 +349,7 @@ function compareVersion(v1, v2) {
 			return -1;
 		} else {
 			if (v1[2] > v2[2]) {
+				console.log(v1[2] > v2[2]);
 				return 1;
 			} else if (v1[2] < v2[2]) {
 				return -1;
@@ -348,6 +358,7 @@ function compareVersion(v1, v2) {
 			}
 		}
 	}
+	
 }
 
 function mdsync(p, mode) {
@@ -369,31 +380,4 @@ function rdsync(p) {
 		}
 	}
 	fs.rmdirSync(p);
-}
-
-function evalReplace($0) {
-	var result = eval($0);
-	var s = result.match(/'/g),
-		d;
-	if (!s) {
-		s = '\'';
-	} else {
-		d = result.match(/"/g);
-		if (!d) {
-			s = '"';
-		} else {
-			s = d.length > s.length ? '\'' : '"';
-		}
-	}
-	return s + result.replace(RegExp('[\\n\\r' + s + '\\\\]', 'g'), function(a) {
-		if (a === '\n') {
-			return '\\n';
-		} else if (a === '\r') {
-			return '\\r';
-		} else if (a === '\\') {
-			return '\\\\';
-		} else {
-			return '\\' + a;
-		}
-	}) + s;
 }
