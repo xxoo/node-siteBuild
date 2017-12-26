@@ -3,27 +3,26 @@
 /*	siteBuild.js
  *	全站构建工具
  *	用法: siteBuild [网站目录] [-f] [-b browser] [-h hashMethod]
- *		使用前请确保网站目录包含 framework/require-config.js, 且其中的 debug 标记为 false
- *		siteBuild 会自动从中读取 srcRoot, productRoot, siteVersion 等配置
- *		每次构建成功后 siteVersion 中的 release number 会在有模块更新时自动 +1
+ *		使用前请确保网站目录包含 index.html, 且其中的 VERSION 为 x.x.x
+ *		siteBuild 会将构建后的模块版本号写入其中, 并在必要时更新 VERSION
  *
  *		如果当前目录即为网站目录, 则可以忽略网站目录参数
  *
  *		如果带有 -f 参数, 则会强制重新构建所有模块, 但仍会根据 hash 值是否发生变化来决定是否更新版本号
- *		如果带有 -b 参数, 则会用 browser 指定的浏览器作为要支持的浏览器来编译。
+ *		如果带有 -b 参数, 则会用 browser 指定的浏览器作为要支持的浏览器来编译
  *		如果带有 -h 参数, 则会用 hashMethod 指定的算法来计算 hash 值
  */
 
 'use strict';
-var version = '0.3.12';
+var version = '0.4.0';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
+var less = require('less');
 var babel = require('babel-core');
 var env = require('babel-preset-env');
 var minify = require('babel-preset-minify');
 var textextensions = require('textextensions');
-var less = require('less');
 
 var dir, force, browser, hashMethod, n = 2;
 if (process.argv.length > 2) {
@@ -51,61 +50,56 @@ run();
 
 function run() {
 	var sscfg, tfms, mods, tmod, fnn, files, jsonpath, sign, json, hash, ln, tmpdist, distfile, orgfile;
-	var scfg = path.join(dir, 'framework/require-config.js');
-	var modsdir, distdir, upModCount = 0;
+	var scfg = path.join(dir, 'index.html');
+	var upModCount = 0;
+	var modsdir = path.join(dir, 'dev');
+	var distdir = path.join(dir, 'dist');
 	var signfile = 'siteBuild.json';
 	var jsonfile = 'package.json';
 	var vers = {};
 	if (fs.existsSync(scfg)) {
 		sscfg = fs.readFileSync(scfg, {
 			encoding: 'utf8'
-			//读取配置文件中的变量, 支持常规的压缩
-		}).replace(/\r/g, '').match(/^([^=]+=\s*)(\{[^\}]*\})([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[^"]*"|'[^']*')([^=]+=\s*)("[\d\.]*"|'[\d\.]*')([^=]+=\s*)(0|1|!0|!1|true|false)((?:.|\n)+)$/);
+		}).match(/^((?:.|\n|\r)+?var VERSION = ')([\d\.]*)(',\s*MODULES = )(\{[^\}]*\})(;(?:.|\n|\r)+)$/);
 		if (sscfg) {
 			sscfg.shift();
 			delete sscfg.input;
 			delete sscfg.index;
-			if (eval(sscfg[9])) {
-				console.log('please set debug value to false in require-config.js');
+			signfile = path.join(distdir, signfile);
+			if (fs.existsSync(signfile)) {
+				sign = JSON.parse(fs.readFileSync(signfile, {
+					encoding: 'utf8'
+				}));
 			} else {
-				modsdir = path.join(dir, eval(sscfg[3]));
-				distdir = path.join(dir, eval(sscfg[5]));
-				signfile = path.join(distdir, signfile);
-				if (fs.existsSync(signfile)) {
-					sign = JSON.parse(fs.readFileSync(signfile, {
-						encoding: 'utf8'
-					}));
+				sign = {};
+			}
+			if (hashMethod) {
+				sign.hashMethod = hashMethod;
+			} else if (!sign.hashMethod) {
+				sign.hashMethod = 'sha256';
+			}
+			if (browser) {
+				sign.browser = browser;
+			} else if (!sign.browser) {
+				sign.browser = 'ie >= 7';
+			}
+			if (sign.version && compareVersion(sign.version, version) > 0) {
+				console.log('please update siteBuild first');
+			} else {
+				if (fs.existsSync(modsdir)) {
+					var fms = fs.readdirSync(modsdir).sort();
+					var i = 0,
+						j = 0;
+					loop1();
 				} else {
-					sign = {};
-				}
-				if (hashMethod) {
-					sign.hashMethod = hashMethod;
-				} else if (!sign.hashMethod) {
-					sign.hashMethod = 'sha256';
-				}
-				if (browser) {
-					sign.browser = browser;
-				} else if (!sign.browser) {
-					sign.browser = 'ie >= 7';
-				}
-				if (sign.version && compareVersion(sign.version, version) > 0) {
-					console.log('please update siteBuild first');
-				} else {
-					if (fs.existsSync(modsdir)) {
-						var fms = fs.readdirSync(modsdir).sort();
-						var i = 0,
-							j = 0;
-						loop1();
-					} else {
-						console.log('srcRoot not found');
-					}
+					console.log('srcRoot not found');
 				}
 			}
 		} else {
-			console.log('bad config format');
+			console.log('bad config format, make sure that VERSION is x.x.x');
 		}
 	} else {
-		console.log('require-config.js not found');
+		console.log('index.html not found');
 	}
 
 	function loop1() {
@@ -279,9 +273,9 @@ function run() {
 	}
 
 	function updateCfg() {
-		sscfg[1] = JSON.stringify(vers);
+		sscfg[3] = JSON.stringify(vers);
 		if (upModCount > 0) {
-			sscfg[7] = JSON.stringify(updatever(eval(sscfg[7])));
+			sscfg[1] = updatever(sscfg[1]);
 		}
 		fs.writeFileSync(scfg, sscfg.join(''));
 		sign.version = version;
