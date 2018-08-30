@@ -14,13 +14,13 @@
  */
 
 'use strict';
-var version = '0.4.0';
+var version = '0.4.2';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
 var less = require('less');
-var babel = require('babel-core');
-var env = require('babel-preset-env');
+var babel = require('@babel/core');
+var env = require('@babel/preset-env');
 var minify = require('babel-preset-minify');
 var textextensions = require('textextensions');
 
@@ -60,7 +60,7 @@ function run() {
 	if (fs.existsSync(scfg)) {
 		sscfg = fs.readFileSync(scfg, {
 			encoding: 'utf8'
-		}).match(/^((?:.|\n|\r)+?var VERSION = ')([\d\.]*)(',\s*MODULES = )(\{[^\}]*\})(;(?:.|\n|\r)+)$/);
+		}).match(/^((?:.|\n|\r)+?var VERSION = ')([\d\.]*)(',\s*MODULES = )(\{[^\}]*\})((?:.|\n|\r)+)$/);
 		if (sscfg) {
 			sscfg.shift();
 			delete sscfg.input;
@@ -203,6 +203,12 @@ function run() {
 
 	function buildJs() {
 		fs.writeFileSync(distfile, babel.transformFileSync(orgfile, {
+			generatorOpts: {
+				jsescOption: {
+					quotes: 'auto',
+					minimal: true
+				}
+			},
 			presets: [[env,{useBuiltIns:false,targets:{browsers:sign.browser}}],minify],
       babelrc: false
 		}).code);
