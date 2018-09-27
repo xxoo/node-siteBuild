@@ -14,14 +14,15 @@
  */
 
 'use strict';
-var version = '0.4.2';
+var version = '0.4.3';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
 var less = require('less');
 var babel = require('@babel/core');
 var env = require('@babel/preset-env');
-var minify = require('babel-preset-minify');
+var terser = require('terser');
+//var minify = require('babel-preset-minify');
 var textextensions = require('textextensions');
 
 var dir, force, browser, hashMethod, n = 2;
@@ -202,15 +203,28 @@ function run() {
 	}
 
 	function buildJs() {
-		fs.writeFileSync(distfile, babel.transformFileSync(orgfile, {
+		var ie = sign.browser.match(/ie\s*>=\s*(\d+)/i);
+		fs.writeFileSync(distfile, terser.minify(babel.transformFileSync(orgfile, {
 			generatorOpts: {
+				compact: false,
+				comments: false,
 				jsescOption: {
 					quotes: 'auto',
 					minimal: true
 				}
 			},
-			presets: [[env,{useBuiltIns:false,targets:{browsers:sign.browser}}],minify],
-      babelrc: false
+			presets: [
+				[env, {
+					useBuiltIns: false,
+					targets: {
+						browsers: sign.browser
+					}
+				}]//, minify
+			],
+			babelrc: false
+		}).code, {
+			safari10: true,
+			ie8: ie && ie[1] <= 8
 		}).code);
 	}
 
@@ -220,11 +234,11 @@ function run() {
 		}), {
 			paths: [path.dirname(orgfile)],
 			compress: true
-		}).then(function(output) {
+		}).then(function (output) {
 			fs.writeFileSync(distfile.replace(/less$/, 'css'), output.css);
 			ln++;
 			checkFiles();
-		}, function(err) {
+		}, function (err) {
 			console.log('error occurs while compiling ' + orgfile + '\n' + err);
 		});
 	}
@@ -331,13 +345,13 @@ function updatever(ver) {
 function compareVersion(v1, v2) {
 	v1 = v1.split('.');
 	v2 = v2.split('.');
-	v1.forEach(function(v,i){
+	v1.forEach(function (v, i) {
 		v1[i] = +v;
 	});
-	v2.forEach(function(v,i){
+	v2.forEach(function (v, i) {
 		v2[i] = +v;
 	});
-	
+
 	if (v1[0] > v2[0]) {
 		return 1;
 	} else if (v1[0] < v2[0]) {
@@ -357,7 +371,7 @@ function compareVersion(v1, v2) {
 			}
 		}
 	}
-	
+
 }
 
 function mdsync(p, mode) {
