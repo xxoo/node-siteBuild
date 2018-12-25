@@ -6,11 +6,11 @@
  *
  *		使用前请确保网站目录包含 index.html, 且其中包含以下代码
  *		<script>
- *		var VERSION = '1.0.0',
+ *		var BUILD = 0,
  *			MODULES = {}
  *		</script>
- *		其中 VERSION 为当前版本号, 格式必须为 x.x.x, MODULES 为站点中的模块.
- *		构建成功后会自动更新 VERSION 和 MODULES 的值.
+ *		其中 BUILD 为当前版本号, 必须为uint, MODULES 为站点中的模块.
+ *		构建成功后会自动更新 BUILD 和 MODULES 的值.
  *		另外站点中可构建的模块都放在 dev 目录中, 并且都以 family/name 结构来保存.
  *		构建成功后会把编译后的代码放至 dist 目录中.
  *		具体可参考这个项目 https://github.com/xxoo/fusion
@@ -23,7 +23,7 @@
  */
 
 'use strict';
-var version = '0.4.3';
+var version = '0.5.0';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -70,11 +70,12 @@ function run() {
 	if (fs.existsSync(scfg)) {
 		sscfg = fs.readFileSync(scfg, {
 			encoding: 'utf8'
-		}).match(/^((?:.|\n|\r)+?var VERSION = ')([\d\.]*)(',\s*MODULES = )(\{[^\}]*\})((?:.|\n|\r)+)$/);
+		}).match(/^((?:.|\n|\r)+?var BUILD = )(\d+)(,\s*MODULES = )(\{[^\}]*\})((?:.|\n|\r)+)$/);
 		if (sscfg) {
 			sscfg.shift();
 			delete sscfg.input;
 			delete sscfg.index;
+			sscfg[1] = +sscfg[1];
 			signfile = path.join(distdir, signfile);
 			if (fs.existsSync(signfile)) {
 				sign = JSON.parse(fs.readFileSync(signfile, {
@@ -106,7 +107,7 @@ function run() {
 				}
 			}
 		} else {
-			console.log('bad config format, make sure that VERSION is x.x.x');
+			console.log('bad config format, make sure that BUILD is an uint');
 		}
 	} else {
 		console.log('index.html not found');
@@ -161,11 +162,7 @@ function run() {
 						upModCount += 1;
 						//do not update the version number for the first time build
 						if ('hash' in json) {
-							if (typeof json.version === 'number') {
-								json.version++;
-							} else {
-								json.version = updatever(json.version);
-							}
+							json.version++;
 						}
 					}
 					ln = 0;
@@ -304,7 +301,7 @@ function run() {
 	function updateCfg() {
 		sscfg[3] = JSON.stringify(vers);
 		if (upModCount > 0) {
-			sscfg[1] = updatever(sscfg[1]);
+			sscfg[1] += 1;
 		}
 		fs.writeFileSync(scfg, sscfg.join(''));
 		sign.version = version;
@@ -340,15 +337,6 @@ function getfiles(dir) {
 		}
 	}
 	return f;
-}
-
-function updatever(ver) {
-	var vs = ver.match(/(\d+\.\d+.)(\d+)/);
-	if (vs) {
-		return vs[1] + (parseInt(vs[2]) + 1);
-	} else {
-		return '0.0.1';
-	}
 }
 
 function compareVersion(v1, v2) {
