@@ -23,7 +23,7 @@
  */
 
 'use strict';
-var version = '0.5.0';
+var version = '0.5.1';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -118,7 +118,11 @@ function run() {
 			tfms = path.join(modsdir, fms[i]);
 			if (fs.statSync(tfms).isDirectory()) {
 				mods = fs.readdirSync(tfms).sort();
-				loop2();
+				if (mods.length) {
+					loop2();
+				} else {
+					p2();
+				}
 			} else {
 				p2();
 			}
