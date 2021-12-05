@@ -1,6 +1,6 @@
 {
 	"name": "siteBuild",
-	"version": "0.5.1",
+	"version": "0.5.2",
 	"description": "build entire modular driven frontend by a single command",
 	"bin": "siteBuild.js",
 	"engines": {
@@ -18,7 +18,7 @@
 	"author": "Xiao Shen",
 	"license": "BSD",
 	"readmeFilename": "readme.md",
-	"dependencies":{
+	"dependencies": {
 		"@babel/core": "latest",
 		"@babel/preset-env": "latest",
 		"terser": "latest",

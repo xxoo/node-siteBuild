@@ -23,7 +23,7 @@
  */
 
 'use strict';
-var version = '0.5.1';
+var version = '0.5.2';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -58,7 +58,7 @@ if (!dir) {
 }
 run();
 
-function run() {
+async function run() {
 	var sscfg, tfms, mods, tmod, fnn, files, jsonpath, sign, json, hash, ln, tmpdist, distfile, orgfile;
 	var scfg = path.join(dir, 'index.html');
 	var upModCount = 0;
@@ -101,7 +101,7 @@ function run() {
 					var fms = fs.readdirSync(modsdir).sort();
 					var i = 0,
 						j = 0;
-					loop1();
+					await loop1();
 				} else {
 					console.log('srcRoot not found');
 				}
@@ -113,13 +113,13 @@ function run() {
 		console.log('index.html not found');
 	}
 
-	function loop1() {
+	async function loop1() {
 		if (j === 0) {
 			tfms = path.join(modsdir, fms[i]);
 			if (fs.statSync(tfms).isDirectory()) {
 				mods = fs.readdirSync(tfms).sort();
 				if (mods.length) {
-					loop2();
+					await loop2();
 				} else {
 					p2();
 				}
@@ -127,11 +127,11 @@ function run() {
 				p2();
 			}
 		} else {
-			loop2();
+			await loop2();
 		}
 	}
 
-	function loop2() {
+	async function loop2() {
 		var oldjsonpath;
 		tmod = path.join(tfms, mods[j]);
 		oldjsonpath = path.join(tmod, jsonfile);
@@ -184,7 +184,7 @@ function run() {
 		}
 	}
 
-	function checkFiles() {
+	async function checkFiles() {
 		var f, d;
 		if (ln < files.length) {
 			f = files[ln].match(/\.(?:(less)|(js))$/);
@@ -196,7 +196,7 @@ function run() {
 			}
 			if (f) {
 				if (f[2]) {
-					buildJs();
+					await buildJs();
 					ln++;
 					checkFiles();
 				} else {
@@ -212,9 +212,9 @@ function run() {
 		}
 	}
 
-	function buildJs() {
+	async function buildJs() {
 		var ie = sign.browser.match(/ie\s*>=\s*(\d+)/i);
-		fs.writeFileSync(distfile, terser.minify(babel.transformFileSync(orgfile, {
+		fs.writeFileSync(distfile, (await terser.minify(babel.transformFileSync(orgfile, {
 			generatorOpts: {
 				compact: false,
 				comments: false,
@@ -235,7 +235,7 @@ function run() {
 		}).code, {
 			safari10: true,
 			ie8: ie && ie[1] <= 8
-		}).code);
+		})).code);
 	}
 
 	function buildLess() {
