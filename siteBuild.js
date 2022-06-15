@@ -23,7 +23,7 @@
  */
 
 'use strict';
-var version = '0.5.2';
+var version = '0.5.3';
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
@@ -70,7 +70,7 @@ async function run() {
 	if (fs.existsSync(scfg)) {
 		sscfg = fs.readFileSync(scfg, {
 			encoding: 'utf8'
-		}).match(/^((?:.|\n|\r)+?var BUILD = )(\d+)(,\s*MODULES = )(\{[^\}]*\})((?:.|\n|\r)+)$/);
+		}).match(/^((?:.|\n|\r)+?(?:var|const) BUILD = )(\d+)(,\s*MODULES = )(\{[^\}]*\})((?:.|\n|\r)+)$/);
 		if (sscfg) {
 			sscfg.shift();
 			delete sscfg.input;
